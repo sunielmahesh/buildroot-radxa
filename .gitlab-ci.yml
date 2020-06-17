@@ -323,6 +323,7 @@ riotboard_defconfig: { extends: .defconfig }
 roc_pc_rk3399_defconfig: { extends: .defconfig }
 rock64_defconfig: { extends: .defconfig }
 rockpro64_defconfig: { extends: .defconfig }
+rockpi_n10_defconfig: { extends: .defconfig }
 roseapplepi_defconfig: { extends: .defconfig }
 s6lx9_microboard_defconfig: { extends: .defconfig }
 sheevaplug_defconfig: { extends: .defconfig }
