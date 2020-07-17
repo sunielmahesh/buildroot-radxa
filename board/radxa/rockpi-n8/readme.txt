@@ -11,7 +11,7 @@ Files created in output directory
 =================================
 
 output/images
-.
+
 ├── boot.vfat
 ├── extlinux
 ├── idbloader.img
@@ -23,7 +23,7 @@ output/images
 ├── u-boot.bin
 ├── u-boot-dtb.bin
 ├── u-boot-dtb.img
-└── uImage
+└── zImage
 
 Creating bootable SD card:
 ==========================
