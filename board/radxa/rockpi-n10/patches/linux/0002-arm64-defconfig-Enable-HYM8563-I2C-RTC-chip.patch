@@ -1,0 +1,29 @@
+From 4950bf7b1f3d692024889ab61c1ded3d0b24c6c6 Mon Sep 17 00:00:00 2001
+From: Suniel Mahesh <sunil@amarulasolutions.com>
+Date: Thu, 2 Jul 2020 16:30:59 +0530
+Subject: [PATCH 2/2] arm64: defconfig: Enable HYM8563 I2C RTC chip
+
+Apart from the usual rtc functions, HYM8563 I2C RTC chip
+provides a clock output of up to 32kHz. This can be used
+as a clock for wifi/bt chipsets.
+
+Signed-off-by: Suniel Mahesh <sunil@amarulasolutions.com>
+---
+ arch/arm64/configs/defconfig | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/arch/arm64/configs/defconfig b/arch/arm64/configs/defconfig
+index 03d0189..167c4dc 100644
+--- a/arch/arm64/configs/defconfig
++++ b/arch/arm64/configs/defconfig
+@@ -734,6 +734,7 @@ CONFIG_EDAC=y
+ CONFIG_EDAC_GHES=y
+ CONFIG_RTC_CLASS=y
+ CONFIG_RTC_DRV_DS1307=m
++CONFIG_RTC_DRV_HYM8563=y
+ CONFIG_RTC_DRV_MAX77686=y
+ CONFIG_RTC_DRV_RK808=m
+ CONFIG_RTC_DRV_PCF85363=m
+-- 
+2.7.4
+
