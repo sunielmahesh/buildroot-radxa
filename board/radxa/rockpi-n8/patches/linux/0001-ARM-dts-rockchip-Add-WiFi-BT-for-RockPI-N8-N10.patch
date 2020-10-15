@@ -1,0 +1,248 @@
+From 25130d23b9eaf4361c9b8fe4eedb5d335d2090e3 Mon Sep 17 00:00:00 2001
+From: Jagan Teki <jagan@amarulasolutions.com>
+Date: Mon, 6 Jul 2020 19:32:14 +0530
+Subject: [PATCH] ARM: dts: rockchip: Add WiFi/BT for RockPI N8/N10
+
+This patch adds support to enable WiFi/BT for
+N10 and N8 combinations SBCs.
+
+Signed-off-by: Jagan Teki <jagan@amarulasolutions.com>
+---
+ arch/arm/boot/dts/rk3288-vmarc-som.dtsi            | 62 ++++++++++++++++++++++
+ .../boot/dts/rockchip-radxa-dalang-carrier.dtsi    | 40 ++++++++++++++
+ .../boot/dts/rockchip/rk3399pro-vmarc-som.dtsi     | 39 ++++++++++++++
+ 3 files changed, 141 insertions(+)
+
+diff --git a/arch/arm/boot/dts/rk3288-vmarc-som.dtsi b/arch/arm/boot/dts/rk3288-vmarc-som.dtsi
+index dca426c9..af2a47d 100644
+--- a/arch/arm/boot/dts/rk3288-vmarc-som.dtsi
++++ b/arch/arm/boot/dts/rk3288-vmarc-som.dtsi
+@@ -20,6 +20,17 @@
+ 	};
+ };
+ 
++&brcmbt {
++	device-wakeup-gpios = <&gpio4 RK_PD2 GPIO_ACTIVE_HIGH>;	/* BT_WAKE */
++	host-wakeup-gpios = <&gpio4 RK_PD7 GPIO_ACTIVE_HIGH>;	/* BT_HOST_WAKE */
++	shutdown-gpios = <&gpio4 RK_PD5 GPIO_ACTIVE_HIGH>;	/* BT_RST */
++};
++
++&brcmwifi {
++	interrupt-parent = <&gpio4>;
++	interrupts = <RK_PD6 GPIO_ACTIVE_HIGH>;
++};
++
+ &emmc {
+ 	bus-width = <8>;
+ 	cap-mmc-highspeed;
+@@ -230,6 +241,23 @@
+ 	};
+ };
+ 
++&i2c1 {
++	clock-frequency = <400000>;
++	status = "okay";
++
++	hym8563: hym8563@51 {
++		compatible = "haoyu,hym8563";
++		reg = <0x51>;
++		#clock-cells = <0>;
++		clock-frequency = <32768>;
++		clock-output-names = "hym8563";
++		pinctrl-names = "default";
++		pinctrl-0 = <&hym8563_int>;
++		interrupt-parent = <&gpio5>;
++		interrupts = <RK_PC3 IRQ_TYPE_LEVEL_LOW>;
++	};
++};
++
+ &io_domains {
+ 	bb-supply = <&vcc_io>;
+ 	flash0-supply = <&vccio_flash>;
+@@ -240,6 +268,26 @@
+ };
+ 
+ &pinctrl {
++	bt {
++		bt_wake: bt-wake {
++			rockchip,pins = <4 RK_PD2 RK_FUNC_GPIO &pcfg_pull_none>;
++		};
++
++		bt_host_wake: bt-host-wake {
++			rockchip,pins = <4 RK_PD7 RK_FUNC_GPIO &pcfg_pull_none>;
++		};
++
++		bt_rst: bt-rst {
++			rockchip,pins = <4 RK_PD5 RK_FUNC_GPIO &pcfg_pull_none>;
++		};
++	};
++
++	hym8563 {
++		hym8563_int: hym8563-int {
++			rockchip,pins = <5 RK_PC3 0 &pcfg_pull_up>;
++		};
++	};
++
+ 	pcfg_pull_none_drv_8ma: pcfg-pull-none-drv-8ma {
+ 		drive-strength = <8>;
+ 	};
+@@ -284,6 +332,20 @@
+ 			rockchip,pins = <0 RK_PB5 RK_FUNC_GPIO &pcfg_pull_up>;
+ 		};
+ 	};
++
++	wifi {
++		wifi_reg_on: wifi-reg-on {
++			rockchip,pins = <4 RK_PD4 RK_FUNC_GPIO &pcfg_pull_none>;
++		};
++
++		wifi_host_wake: wifi-host-wake {
++			rockchip,pins = <4 RK_PD6 RK_FUNC_GPIO &pcfg_pull_none>;
++		};
++	};
++};
++
++&sdio_pwrseq {
++	reset-gpios = <&gpio4 RK_PD4 GPIO_ACTIVE_LOW>;	/* WIFI_REG_ON */
+ };
+ 
+ &usbphy {
+diff --git a/arch/arm/boot/dts/rockchip-radxa-dalang-carrier.dtsi b/arch/arm/boot/dts/rockchip-radxa-dalang-carrier.dtsi
+index 10537ca..c6896979 100644
+--- a/arch/arm/boot/dts/rockchip-radxa-dalang-carrier.dtsi
++++ b/arch/arm/boot/dts/rockchip-radxa-dalang-carrier.dtsi
+@@ -15,6 +15,14 @@
+ 		#clock-cells = <0>;
+ 	};
+ 
++	sdio_pwrseq: sdio-pwrseq {
++		compatible = "mmc-pwrseq-simple";
++		clocks = <&hym8563>;
++		clock-names = "ext_clock";
++		pinctrl-names = "default";
++		pinctrl-0 = <&wifi_reg_on>;
++	};
++
+ 	vcc12v_dcin: vcc12v-dcin-regulator {
+ 		compatible = "regulator-fixed";
+ 		regulator-name = "vcc12v_dcin";
+@@ -85,6 +93,30 @@
+ 	status = "okay";
+ };
+ 
++&sdio0 {
++	#address-cells = <1>;
++	#size-cells = <0>;
++	bus-width = <4>;
++	clock-frequency = <50000000>;
++	cap-sdio-irq;
++	cap-sd-highspeed;
++	keep-power-in-suspend;
++	mmc-pwrseq = <&sdio_pwrseq>;
++	non-removable;
++	pinctrl-names = "default";
++	pinctrl-0 = <&sdio0_bus4 &sdio0_cmd &sdio0_clk>;
++	sd-uhs-sdr104;
++	status = "okay";
++
++	brcmwifi: wifi@1 {
++		compatible = "brcm,bcm4329-fmac";
++		reg = <1>;
++		interrupt-names = "host-wake";
++		pinctrl-names = "default";
++		pinctrl-0 = <&wifi_host_wake>;
++	};
++};
++
+ &sdmmc {
+ 	bus-width = <4>;
+ 	cap-mmc-highspeed;
+@@ -100,6 +132,14 @@
+ 	pinctrl-names = "default";
+ 	pinctrl-0 = <&uart0_xfer &uart0_cts>;
+ 	status = "okay";
++
++	brcmbt: bluetooth {
++		compatible = "brcm,bcm43438-bt";
++		clocks = <&hym8563>;
++		clock-names = "ext_clock";
++		pinctrl-names = "default";
++		pinctrl-0 = <&bt_wake &bt_host_wake &bt_rst>;
++	};
+ };
+ 
+ &uart2 {
+diff --git a/arch/arm64/boot/dts/rockchip/rk3399pro-vmarc-som.dtsi b/arch/arm64/boot/dts/rockchip/rk3399pro-vmarc-som.dtsi
+index 621ded3..e0d10e4 100644
+--- a/arch/arm64/boot/dts/rockchip/rk3399pro-vmarc-som.dtsi
++++ b/arch/arm64/boot/dts/rockchip/rk3399pro-vmarc-som.dtsi
+@@ -28,6 +28,17 @@
+ 	};
+ };
+ 
++&brcmbt {
++	device-wakeup-gpios = <&gpio2 RK_PD2 GPIO_ACTIVE_HIGH>;	/* BT_WAKE */
++	host-wakeup-gpios = <&gpio0 RK_PA5 GPIO_ACTIVE_HIGH>;	/* BT_HOST_WAKE */
++	shutdown-gpios = <&gpio2 RK_PD4 GPIO_ACTIVE_HIGH>;	/* BT_RST */
++};
++
++&brcmwifi {
++	interrupt-parent = <&gpio0>;
++	interrupts = <RK_PA3 GPIO_ACTIVE_HIGH>;
++};
++
+ &cpu_l0 {
+ 	cpu-supply = <&vdd_cpu_l>;
+ };
+@@ -336,6 +347,20 @@
+ };
+ 
+ &pinctrl {
++	bt {
++		bt_wake: bt-wake {
++			rockchip,pins = <2 RK_PD2 RK_FUNC_GPIO &pcfg_pull_none>;
++		};
++
++		bt_host_wake: bt-host-wake {
++			rockchip,pins = <0 RK_PA5 RK_FUNC_GPIO &pcfg_pull_none>;
++		};
++
++		bt_rst: bt-rst {
++			rockchip,pins = <2 RK_PD4 RK_FUNC_GPIO &pcfg_pull_none>;
++		};
++	};
++
+ 	hym8563 {
+ 		hym8563_int: hym8563-int {
+ 			rockchip,pins = <4 RK_PD6 0 &pcfg_pull_up>;
+@@ -365,6 +390,16 @@
+ 			rockchip,pins = <4 RK_PD2 RK_FUNC_GPIO &pcfg_pull_up>;
+ 		};
+ 	};
++
++	wifi {
++		wifi_reg_on: wifi-reg-on {
++			rockchip,pins = <2 RK_PD3 RK_FUNC_GPIO &pcfg_pull_none>;
++		};
++
++		wifi_host_wake: wifi-host-wake {
++			rockchip,pins = <0 RK_PA3 RK_FUNC_GPIO &pcfg_pull_none>;
++		};
++	};
+ };
+ 
+ &pmu_io_domains {
+@@ -380,6 +415,10 @@
+ 	status = "okay";
+ };
+ 
++&sdio_pwrseq {
++	reset-gpios = <&gpio2 RK_PD3 GPIO_ACTIVE_LOW>;	/* WIFI_REG_ON */
++};
++
+ &sdmmc {
+ 	cd-gpios = <&gpio0 RK_PA7 GPIO_ACTIVE_LOW>;
+ 	max-frequency = <150000000>;
+-- 
+2.7.4
+
